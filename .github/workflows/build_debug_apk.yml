@@ -7,6 +7,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  FLUTTER_VERSION: '3.24.5'
+  JAVA_VERSION: '17'
+
 jobs:
   build:
     name: Build Debug APK
@@ -16,105 +20,139 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
       
-    - name: Set up JDK 17
+    - name: Set up JDK ${{ env.JAVA_VERSION }}
       uses: actions/setup-java@v4
       with:
-        java-version: '17'
+        java-version: ${{ env.JAVA_VERSION }}
         distribution: 'temurin'
+        cache: 'gradle'
         
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
       
+    - name: Cache Flutter
+      uses: actions/cache@v4
+      with:
+        path: /opt/hostedtoolcache/flutter
+        key: ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-flutter-${{ env.FLUTTER_VERSION }}-
+          ${{ runner.os }}-flutter-
+          
     - name: Setup Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.24.0'
+        flutter-version: ${{ env.FLUTTER_VERSION }}
         channel: 'stable'
         cache: true
         
-    - name: Verify Flutter Setup
+    - name: Verify Flutter Installation
       run: |
-        flutter doctor -v
         flutter --version
+        flutter doctor -v
+        
+    - name: Clean Project
+      run: flutter clean
         
     - name: Get Dependencies
-      run: flutter pub get
-        
-    - name: Generate Code (Drift/Freezed)
       run: |
-        flutter pub run build_runner build --delete-conflicting-outputs || true
+        flutter pub get
         
-    - name: Verify Generated Code
+    - name: Analyze Dependencies
+      run: flutter pub deps --style=compact
+        
+    - name: Generate Code (Drift/Hive/Freezed)
       run: |
-        ls -la lib/data/local/*.g.dart 2>/dev/null || echo "Generated files check"
-        ls -la lib/domain/models/*.g.dart 2>/dev/null || echo "Model files check"
+        echo "Running build_runner..."
+        flutter pub run build_runner build --delete-conflicting-outputs || \
+        (echo "Retrying with delete..." && flutter pub run build_runner build --delete-conflicting-outputs)
+        
+    - name: Verify Generated Files
+      run: |
+        echo "=== Checking Generated Files ==="
+        find lib -name "*.g.dart" -type f | wc -l
+        find lib -name "*.freezed.dart" -type f | wc -l
         
     - name: Analyze Code
-      run: flutter analyze --no-fatal-infos || true
+      run: flutter analyze --no-fatal-infos --no-fatal-warnings || true
+        
+    - name: Format Code
+      run: flutter format --set-exit-if-changed lib test || true
         
     - name: Run Tests
-      run: flutter test --no-test-randomize-ordering-seed || true
+      run: |
+        flutter test --coverage --test-randomize-ordering-seed random || \
+        flutter test --no-test-randomize-ordering-seed || true
         
     - name: Build Debug APK
       run: |
         flutter build apk --debug --split-per-abi --verbose
+      timeout-minutes: 30
         
-    - name: List Build Outputs
+    - name: Verify Build Output
       run: |
-        echo "=== Build Output Files ==="
+        echo "=== Build Output Structure ==="
         find build/app/outputs -type f -name "*.apk" 2>/dev/null | head -20
         echo ""
-        echo "=== File Sizes ==="
-        ls -lh build/app/outputs/flutter-apk/*.apk 2>/dev/null || echo "APK files not found"
+        echo "=== APK File Sizes ==="
+        ls -lh build/app/outputs/flutter-apk/*.apk 2>/dev/null || echo "No APK files found in flutter-apk"
+        ls -lh build/app/outputs/apk/debug/*.apk 2>/dev/null || echo "No APK files found in debug"
         
     - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       if: success()
       with:
-        name: debug-apk-${{ github.run_number }}
+        name: debug-apk-${{ github.run_number }}-${{ github.sha }}
         path: |
-          build/app/outputs/flutter-apk/*.apk
+          build/app/outputs/flutter-apk/**/*.apk
+          build/app/outputs/apk/**/*.apk
         if-no-files-found: warn
-        retention-days: 7
+        compression-level: 6
+        retention-days: 14
         
     - name: Upload Build Logs on Failure
       uses: actions/upload-artifact@v4
       if: failure()
       with:
-        name: build-logs-${{ github.run_number }}
+        name: build-failure-logs-${{ github.run_number }}
         path: |
           build/
-          ~/.flutter-sdk/.pub-cache/
+          .dart_tool/
+          ~/.pub-cache/log/
         if-no-files-found: ignore
         retention-days: 3
 
   release:
-    name: Create Release
+    name: Create Pre-release
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.build.result == 'success'
     
     steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      
     - name: Download Debug APK
       uses: actions/download-artifact@v4
       with:
-        name: debug-apk-${{ github.run_number }}
+        name: debug-apk-${{ github.run_number }}-${{ github.sha }}
         path: ./artifacts/
         
     - name: Get Current Date
       id: date
-      run: echo "date=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+      run: echo "date=$(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
       
     - name: Get Short SHA
       id: sha
-      run: echo "sha=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+      run: echo "sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       
     - name: List Artifacts
       run: |
         echo "=== Release Artifacts ==="
         find ./artifacts -type f -name "*.apk" | head -10
         echo ""
-        ls -lh ./artifacts/*.apk 2>/dev/null || echo "No APK files found"
+        ls -lh ./artifacts/*.apk 2>/dev/null || echo "No APK files in root"
+        find ./artifacts -name "*.apk" -exec ls -lh {} \;
       
     - name: Create Pre-release
       uses: softprops/action-gh-release@v1
@@ -123,32 +161,56 @@ jobs:
         tag_name: debug-v${{ steps.date.outputs.date }}-${{ steps.sha.outputs.sha }}
         name: 🚀 Debug Build ${{ steps.date.outputs.date }}
         body: |
-          ## 🎉 Debug Build
+          ## 🎉 Automated Debug Build
           
-          Automated debug build generated by GitHub Actions.
+          This is an automated debug build generated by GitHub Actions.
           
-          ### 📋 Build Info
+          ### 📋 Build Information
           | Item | Value |
           |------|-------|
-          | **Date** | ${{ steps.date.outputs.date }} |
-          | **Commit** | ${{ github.sha }} |
+          | **Build Date** | ${{ steps.date.outputs.date }} |
+          | **Commit SHA** | ${{ github.sha }} |
+          | **Short SHA** | ${{ steps.sha.outputs.sha }} |
           | **Branch** | ${{ github.ref_name }} |
-          | **Build #** | ${{ github.run_number }} |
+          | **Build Number** | ${{ github.run_number }} |
+          | **Workflow** | ${{ github.workflow }} |
           
-          ### 📱 Installation
-          1. Download the APK file below
-          2. Install on your Android device (Android 5.0+)
-          3. Allow "Install from unknown sources" if prompted
+          ### 📱 Installation Instructions
           
-          ### ⚠️ Note
-          This is a **debug build** for testing purposes only.
+          1. Download the APK file(s) from the Assets section below
+          2. Transfer the APK to your Android device
+          3. Enable "Install from unknown sources" in Settings > Security
+          4. Open the APK file and tap "Install"
+          5. Launch the app and enjoy!
+          
+          ### 🔧 Supported Architectures
+          This build includes APKs for multiple architectures:
+          - `arm64-v8a` - Modern 64-bit ARM devices (most common)
+          - `armeabi-v7a` - Older 32-bit ARM devices
+          - `x86_64` - Intel/AMD 64-bit devices (emulators)
+          
+          ### ⚠️ Important Notes
+          - This is a **debug build** for testing purposes only
+          - Debug builds are not optimized for performance
+          - Some features may not work as expected
           - Not signed with release keys
-          - May contain debug features
-          - Performance may differ from release builds
+          - May contain debug logging and development features
           
-          ### 🔗 Links
+          ### 🐛 Found a Bug?
+          If you encounter any issues with this build, please:
+          1. Check the [Issues](${{ github.server_url }}/${{ github.repository }}/issues) page
+          2. Create a new issue with details about the problem
+          3. Include steps to reproduce, expected behavior, and actual behavior
+          
+          ### 🔗 Useful Links
           - [Repository](${{ github.server_url }}/${{ github.repository }})
           - [Actions](${{ github.server_url }}/${{ github.repository }}/actions)
+          - [Issues](${{ github.server_url }}/${{ github.repository }}/issues)
+          - [Wiki](${{ github.server_url }}/${{ github.repository }}/wiki)
+          
+          ---
+          
+          **Built with ❤️ by GitHub Actions**
         files: ./artifacts/**/*.apk
         prerelease: true
         generate_release_notes: false
