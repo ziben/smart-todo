@@ -1,6 +1,6 @@
 # 智能清单 Flutter 项目 - 开发状态
 
-## 项目状态：🚧 重构进行中
+## 项目状态：✅ 重构完成
 
 ### 重构完成 ✅
 
@@ -18,7 +18,7 @@ lib/
 │   └── di/                 # 依赖注入 ✅
 ├── data/                    # 数据层
 │   ├── local/              # 本地数据库 ✅
-│   ├── remote/             # 远程API
+│   ├── remote/             # Firebase 远程数据源 ✅
 │   └── repositories/       # 仓库实现 ✅
 ├── domain/                  # 领域层
 │   ├── entities/           # 错误类型 ✅
@@ -33,7 +33,8 @@ lib/
     ├── nlp_service.dart    # NLP解析 ✅
     ├── sync_service.dart   # 数据同步 ✅
     ├── notification_service.dart ✅
-    └── ai_service.dart     # AI服务 ✅
+    ├── ai_service.dart     # AI服务 ✅
+    └── collaboration_service.dart ✅ 协作服务
 ```
 
 #### 2. 核心功能模块 ✅
@@ -43,13 +44,17 @@ lib/
   - 任务表、项目表、标签表
   - 活动日志表、同步队列表
   - CRUD 操作 + 流式查询
+- **Firebase 远程数据源** ✅
+  - Firestore 实时同步
+  - 用户认证
+  - 冲突检测
 
 #### 领域层
 - **任务模型** (Freezed + JSON Serializable)
   - 支持优先级、状态、时间、标签
   - 子任务、附件、协作成员
   - 同步状态管理 (离线优先)
-- **UseCases 业务逻辑** ✅
+- **UseCases 业务逻辑** ✅ (9个)
   - GetTasksUseCase
   - GetTaskByIdUseCase
   - CreateTaskUseCase
@@ -61,13 +66,13 @@ lib/
   - GetOverdueTasksUseCase
 - **Repository 仓储** ✅
   - TaskRepository 接口
-  - TaskRepositoryImpl 实现
+  - TaskRepositoryImpl 实现（混合同步）
 
 #### 服务层
 - **NLP 解析服务** ✅
   - 自然语言转结构化数据
-  - 支持日期时间解析（今天、明天、下周一等）
-  - 优先级识别（P1、紧急、高优先级等）
+  - 日期时间解析（今天、明天、下周一等）
+  - 优先级识别（P1、紧急等）
   - 标签和项目提取
   - 预计时长解析
 - **AI 服务** ✅
@@ -78,10 +83,16 @@ lib/
 - **同步服务** ✅
   - 离线优先架构
   - 冲突解决策略
-  - 自动同步
+  - 自动/手动同步
 - **通知服务** ✅
   - 本地通知
   - 按时提醒
+  - 优先级调整提醒
+- **协作服务** ✅
+  - 项目邀请
+  - 成员管理
+  - 任务分配
+  - 评论系统
 
 #### UI 页面 ✅
 - **首页** (HomeScreen) - 今天/待办/统计/设置
@@ -95,6 +106,7 @@ lib/
 - TaskListItem - 任务列表项
 - NlpInputField - NLP 输入框
 - PrioritySelector - 优先级选择器
+- StatusSelector - 状态选择器
 - AiTaskBreakdown - AI 任务拆解
 
 #### 主题系统 ✅
@@ -103,25 +115,17 @@ lib/
 - 优先级颜色体系
 - 响应式字体系统（Noto Sans SC）
 
-### 待开发模块
+#### 测试 ✅
+- **单元测试**
+  - Task 模型测试
+  - NLP 服务测试
+  - UseCase 业务逻辑测试
 
-#### 1. 数据同步
-- [ ] Firebase 集成
-  - Firestore 实时同步
-  - 离线持久化
-  - 认证系统
+---
 
-#### 2. 高级功能
-- [ ] 协作功能
-  - 共享项目
-  - 任务分配
-  - 评论和@提及
+**当前进度：约 85%**
 
-#### 3. 测试
-- [ ] 单元测试
-- [ ] 集成测试
-
-## 技术栈
+### 技术栈
 
 - **Flutter 3.x** - UI框架
 - **Dart 3.x** - 编程语言
@@ -132,15 +136,11 @@ lib/
 - **Firebase** - 后端服务
 - **GoRouter** - 路由导航
 
-## 项目规范
-
-- 代码遵循 Dart 官方风格指南
-- 使用 Clean Architecture 分层
-- 状态管理使用 Bloc 模式
-- UI 使用 Material 3 设计
-- 支持中文国际化
+### 待完成
+- 集成测试
+- E2E 测试
+- 性能优化
 
 ---
 
-**当前进度：约 60%**
-核心架构和基础模块已完成，主要剩余高级功能和测试。
+_最后更新: 2026-03-01_
