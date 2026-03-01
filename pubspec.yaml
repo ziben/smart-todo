@@ -73,8 +73,18 @@ dependencies:
   # 日志
   logger: ^2.0.2
   
+  # 依赖注入
+  get_it: ^8.0.3
+  injectable: ^2.5.0
+  
   # 加密
   encrypt: ^5.0.1
+  
+  # 网络连接
+  connectivity_plus: ^6.1.4
+  
+  # HTTP
+  http: ^1.4.0
   
   # 测试
   mocktail: ^1.0.1

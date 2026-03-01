@@ -426,6 +426,3 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showPrivacyPolicy() {}
   void _share() {}
 }
-
-// 导入缺失的依赖
-import 'package:share_plus/share_plus.dart';

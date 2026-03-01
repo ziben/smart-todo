@@ -194,10 +194,10 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           const SizedBox(height: 24),
 
           // 时间信息
-          if (task.dueDate != null) _buildTimeSection(),
+          if (_task.dueDate != null) _buildTimeSection(),
 
           // 标签
-          if (task.tags.isNotEmpty) ...[
+          if (_task.tags.isNotEmpty) ...[
             const SizedBox(height: 24),
             _buildTagsSection(),
           ],
