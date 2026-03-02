@@ -143,4 +143,33 @@ lib/
 
 ---
 
+## 更新日志 (2026-03-01)
+
+### 新增功能 🍅
+
+#### 番茄钟 (Pomodoro)
+- `lib/services/pomodoro_service.dart` - 番茄钟服务
+- `lib/presentation/bloc/pomodoro/` - 状态管理
+- `lib/presentation/widgets/pomodoro_widget.dart` - UI 组件
+
+#### 清单管理 (Projects)
+- `lib/domain/models/project_model.dart` - 清单模型
+
+### 测试完善 ✅ (76个单元测试 + 集成测试)
+
+#### 单元测试
+- NLP服务测试 (17个)
+- Task模型测试 (13个)
+- 番茄钟服务测试 (14个)
+- UseCase测试 (20个)
+- 清单模型测试 (12个)
+
+#### 集成测试
+- `integration_test/task_integration_test.dart` - UI 集成测试 (11个测试场景)
+- `integration_test/business_flow_test.dart` - 业务流程测试 (11个测试场景)
+
+**总计: 76个单元测试 + 22个集成测试场景**
+
+---
+
 _最后更新: 2026-03-01_

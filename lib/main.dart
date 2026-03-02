@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:integration_test/integration_test.dart';
 import 'core/di/injection.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/bloc/task/task_bloc.dart';
+import 'presentation/bloc/pomodoro/pomodoro_bloc.dart';
 import 'presentation/screens/home/home_screen.dart';
 import 'services/notification_service.dart';
 import 'services/sync_service.dart';
@@ -18,6 +20,13 @@ void main() async {
   await _initializeServices();
   
   runApp(const MyApp());
+}
+
+/// 集成测试入口
+void mainIntegrationTest() {
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  
+  main();
 }
 
 Future<void> _initializeServices() async {
@@ -43,6 +52,9 @@ class MyApp extends StatelessWidget {
       providers: [
         BlocProvider(
           create: (context) => getIt<TaskBloc>()..add(const TaskEvent.watchTasks()),
+        ),
+        BlocProvider(
+          create: (context) => getIt<PomodoroBloc>(),
         ),
         // 添加其他 BLoC...
       ],
