@@ -95,8 +95,6 @@ dependencies:
   speech_to_text: ^7.0.0
 
 dependency_overrides:
-  # 解决依赖冲突
-  analyzer: ^6.0.0
 
 dev_dependencies:
   flutter_test:
