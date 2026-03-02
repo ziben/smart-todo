@@ -89,8 +89,7 @@ dependencies:
   # 测试
   mocktail: ^1.0.1
   
-  # Freezed
-  freezed_annotation: ^2.4.1
+
   
   # 语音识别
   speech_to_text: ^7.0.0

@@ -70,7 +70,7 @@ enum ProjectIcon {
   pets,
   @JsonValue('child_care')
   childCare,
-  @JsonValue('fitness_center')
+  @JsonValue('gym')
   gym,
   @JsonValue('nature')
   nature,
@@ -264,7 +264,7 @@ extension ProjectIconExtension on ProjectIcon {
       case ProjectIcon.gym:
         return 0xeb43; // Icons.fitness_center
       case ProjectIcon.nature:
-        return 0xe405; // Icons.nature (using music_note as fallback)
+        return 0xe3a9; // Icons.nature
     }
   }
 
